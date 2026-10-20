@@ -31,9 +31,12 @@ struct ContentView: View {
                     Text("A little less to do".uppercased())
                     Text("MooDo.")
                 }
-                
-                // TODO: replace by cow head image
-                Text("🐮")
+
+                Image("CowHead")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 104, height: 104)
+                    .accessibilityHidden(true)
             }
             
             // List count
