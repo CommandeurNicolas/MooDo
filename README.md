@@ -62,7 +62,7 @@ managed Mac, your administrator may restrict this option. See
 - **Start another task:** press **Return** when the input isn't focused to focus it.
 - **Leave the input:** press **Escape**.
 - **Complete or reopen a task:** click its checkbox.
-- **Delete a task:** click the **×** beside it. :warning: ⚠️***Deletion is immediate***.
+- **Delete a task:** click the **×** beside it. :warning:***Deletion is immediate***:warning:.
 
 Your changes are saved locally, so your list is there when you reopen the app.
 
