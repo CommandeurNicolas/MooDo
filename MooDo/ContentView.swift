@@ -185,11 +185,19 @@ struct ContentView: View {
             .padding(.top, 24) // Margin between list and textfield
             
             // Footer
-            Text("\(Text("•").foregroundStyle(.pastureGreen)) One thing at a time.")
-                .foregroundStyle(.pastureMuted)
-                .font(.system(size: 11))
-                .frame(maxWidth: .infinity)
-                .padding(.top, 22) // Margin between text field and footer
+            HStack(spacing: 7) {
+                Circle()
+                    .fill(.pastureGreen)
+                    .opacity(0.7)
+                    .frame(width: 5, height: 5)
+                    .accessibilityHidden(true)
+
+                Text("One thing at a time.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.pastureMuted)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 22) // Margin between text field and footer
         }
         .padding(EdgeInsets(top: 30, leading: 30, bottom: 21, trailing: 30))
         .frame(
