@@ -16,8 +16,8 @@ struct ContentView: View {
         }
     }
     
-    // New item
-    @State private var newItemTitle: String = ""
+    // New task
+    @State private var newTaskTitle: String = ""
     @FocusState private var isNewTaskFocused: Bool
     private var focusNewTaskAction: (() -> Void)? {
         guard !isNewTaskFocused, !isShowingSaveError else { return nil }
@@ -137,7 +137,7 @@ struct ContentView: View {
                 // Text field
                 TextField(
                     "new_item_placeholder",
-                    text: $newItemTitle,
+                    text: $newTaskTitle,
                     prompt: Text("What needs doing?")
                         .font(.system(size: 14))
                         .foregroundStyle(.pastureMuted)
@@ -234,7 +234,7 @@ struct ContentView: View {
     }
     
     private func onSubmit() {
-        let title = newItemTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         
         // Prevent empty new item
         guard !title.isEmpty else { return }
@@ -242,7 +242,7 @@ struct ContentView: View {
         withAnimation {
             let newItem = TodoItem(title: title)
             modelContext.insert(newItem)
-            newItemTitle = ""
+            newTaskTitle = ""
         }
         // Try saving
         saveChanges()
