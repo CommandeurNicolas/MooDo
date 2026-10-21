@@ -17,6 +17,7 @@ struct ContentView: View {
     }
     
     // New task
+    private let minListRowHeight: CGFloat = 48
     @State private var newTaskTitle: String = ""
     @FocusState private var isNewTaskFocused: Bool
     private var focusNewTaskAction: (() -> Void)? {
@@ -77,53 +78,92 @@ struct ContentView: View {
             .padding(.bottom, 8)
             
             // Items list
-            List {
-                ForEach(sortedItems) { item in
-                    @Bindable var item = item
-                    
-                    HStack {
-                        // Complete item
-                        Toggle(isOn: $item.isCompleted) {
-                            Text(item.title)
-                                .font(.system(size: 14))
-                                .foregroundStyle(
-                                    item.isCompleted ? .pastureMuted: .pastureText
-                                )
-                                .strikethrough(
-                                    item.isCompleted,
-                                    color: .pastureStrikethrough
-                                )
-                        }
-                        .toggleStyle(PastureCheckboxStyle())
-                        .onChange(of: item.isCompleted) {
-                            saveChanges()
-                        }
-                        
-                        // Some space
-                        Spacer()
-                        
-                        // Delete item
-                        Button {
-                            deleteItem(item)
-                        } label: {
-                            Label("Delete \(item.title)", systemImage: "xmark")
-                                .font(.system(size: 15, weight: .regular))
+            GeometryReader { geometry in
+                ScrollViewReader { proxy in
+                    List {
+                        ForEach(sortedItems) { item in
+                            @Bindable var item = item
+                            
+                            HStack {
+                                // Complete item
+                                Toggle(isOn: $item.isCompleted) {
+                                    Text(item.title)
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(
+                                            item.isCompleted ? .pastureMuted: .pastureText
+                                        )
+                                        .strikethrough(
+                                            item.isCompleted,
+                                            color: .pastureStrikethrough
+                                        )
+                                }
+                                .toggleStyle(PastureCheckboxStyle())
+                                .onChange(of: item.isCompleted) {
+                                    saveChanges()
+                                }
+                                
+                                // Some space
+                                Spacer()
+                                
+                                // Delete item
+                                Button {
+                                    deleteItem(item)
+                                } label: {
+                                    Label("Delete \(item.title)", systemImage: "xmark")
+                                        .font(.system(size: 15, weight: .regular))
+                                        .labelStyle(.iconOnly)
+                                        .frame(width: 30, height: 30)
+                                }
                                 .labelStyle(.iconOnly)
-                                .frame(width: 30, height: 30)
+                                .buttonStyle(.borderless)
+                                .foregroundStyle(.pastureMuted)
+                            }
+                            .id(item.persistentModelID)
+                            .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                            .listRowSeparator(.visible, edges: .bottom)
+                            .listRowSeparatorTint(.pastureBorder, edges: .bottom)
                         }
-                        .labelStyle(.iconOnly)
-                        .buttonStyle(.borderless)
-                        .foregroundStyle(.pastureMuted)
                     }
-                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                    .listRowSeparator(.visible, edges: .bottom)
-                    .listRowSeparatorTint(.pastureBorder, edges: .bottom)
+                    .environment(\.defaultMinListRowHeight, minListRowHeight) // top = 8, item = 32, bottom = 8
+                    .contentMargins(.all, 0, for: .scrollContent)
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                    .onChange(of: items.count) { previousCount, newCount in
+                        guard newCount > previousCount,
+                              let newTask = sortedItems.last(where: {
+                                  !$0.isCompleted
+                              })
+                        else { return }
+                        
+                        // Scroll to new task + bottom margin showing the completed task below
+                        let peekHeight = minListRowHeight / 2
+                        let listHeight = geometry.size.height
+                        let hasCompletedTasks = items.contains {
+                            $0.isCompleted
+                        }
+                        
+                        // Bottom of new task
+                        var anchor = UnitPoint.bottom
+                        
+                        // Update anchor to half of first completed task height
+                        if hasCompletedTasks, listHeight > minListRowHeight + peekHeight {
+                            anchor = UnitPoint(
+                                x: 0.5,
+                                y: 1 - peekHeight / (listHeight - minListRowHeight)
+                            )
+                        }
+                        
+                        // Scroll to new task
+                        withAnimation {
+                            proxy.scrollTo(
+                                newTask.persistentModelID,
+                                anchor: anchor
+                            )
+                        }
+                    }
                 }
             }
-            .environment(\.defaultMinListRowHeight, 48) // top = 8, item = 32, bottom = 8
-            .contentMargins(.all, 0, for: .scrollContent)
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
+            
 
             // New item text field
             HStack(spacing: 10) {
