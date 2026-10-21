@@ -17,8 +17,15 @@ struct ContentView: View {
     }
     
     // New item
-    @FocusState private var isNewTaskFocused: Bool
     @State private var newItemTitle: String = ""
+    @FocusState private var isNewTaskFocused: Bool
+    private var focusNewTaskAction: (() -> Void)? {
+        guard !isNewTaskFocused, !isShowingSaveError else { return nil }
+        
+        return {
+            isNewTaskFocused = true
+        }
+    }
     
     // Save error handling
     @State private var isShowingSaveError: Bool = false
@@ -142,6 +149,9 @@ struct ContentView: View {
                 .onSubmit {
                     onSubmit()
                 }
+                .onExitCommand {
+                    isNewTaskFocused = false
+                }
                 
                 // Trailing return icon
                 Button {
@@ -208,6 +218,8 @@ struct ContentView: View {
         .font(.system(size: 14)) // Default text size
         .foregroundStyle(.pastureText)
         .background(.pastureBackground)
+        // Focus
+        .focusedSceneValue(\.focusNewTask, focusNewTaskAction)
         // Save error dialog
         .alert(
             "Couldn't save your changes",

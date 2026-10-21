@@ -11,5 +11,8 @@ struct MooDoApp: App {
         .defaultSize(width: 500, height: 560)
         .windowIdealSize(.fitToContent)
         .modelContainer(for: TodoItem.self)
+        .commands {
+            TaskFocusCommand()
+        }
     }
 }
