@@ -168,12 +168,19 @@ struct ContentView: View {
                 .pastureField,
                 in: RoundedRectangle(cornerRadius: 9)
             )
+            // Normal border, always visible
             .overlay {
                 RoundedRectangle(cornerRadius: 9)
-                    .strokeBorder(
-                        isNewTaskFocused ? .pastureGreen : .pastureBorder,
-                        lineWidth: isNewTaskFocused ? 2 : 1
-                    )
+                    .strokeBorder(.pastureBorder, lineWidth: 1)
+                    .allowsHitTesting(false)
+            }
+            // Outer focus ring
+            .overlay {
+                RoundedRectangle(cornerRadius: 13)
+                    .strokeBorder(.pastureGreen, lineWidth: 2)
+                    .padding(-4)
+                    .opacity(isNewTaskFocused ? 1 : 0)
+                    .allowsHitTesting(false)
             }
             .padding(.top, 24) // Margin between list and textfield
             
