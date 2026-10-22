@@ -5,6 +5,10 @@
 MooDo is a small, native macOS to-do app for keeping track of everyday tasks.
 One list, a friendly cow, and a little space to focus on the next thing.
 
+<p align="center">
+  <img src="docs/images/moodo-screenshot.png" alt="MooDo in dark mode, showing a task list with unfinished and completed tasks." width="500">
+</p>
+
 ## What it does
 
 - Add tasks and check them off as you go.
