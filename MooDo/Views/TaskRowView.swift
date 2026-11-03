@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct TaskRowView: View {
-    @Bindable var task: TodoItem
+    @Bindable var task: Task
     
     @Binding var editTaskId: PersistentIdentifier?
     @Binding var editTaskTitle: String

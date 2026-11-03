@@ -5,9 +5,9 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     
     // Items list
-    @Query private var items: [TodoItem]
-    private var sortedItems: [TodoItem] {
-        items.sorted { first, second in
+    @Query private var tasks: [Task]
+    private var sortedTasks: [Task] {
+        tasks.sorted { first, second in
             if first.isCompleted != second.isCompleted {
                 return !first.isCompleted
             }
@@ -84,7 +84,7 @@ struct ContentView: View {
                 Spacer() // Some space
                 
                 // Not completed tasks count
-                Text("\(items.filter { !$0.isCompleted }.count) left")
+                Text("\(tasks.filter { !$0.isCompleted }.count) left")
                     .font(.system(size: 12))
                     .monospacedDigit()
                     .foregroundStyle(.pastureMuted)
@@ -95,7 +95,7 @@ struct ContentView: View {
             GeometryReader { geometry in
                 ScrollViewReader { proxy in
                     List {
-                        ForEach(sortedItems) { task in
+                        ForEach(sortedTasks) { task in
                             TaskRowView(
                                 task: task,
                                 editTaskId: $editTaskId,
@@ -110,13 +110,13 @@ struct ContentView: View {
                             .id(task.persistentModelID)
                         }
                     }
-                    .environment(\.defaultMinListRowHeight, minListRowHeight) // top = 8, item = 32, bottom = 8
+                    .environment(\.defaultMinListRowHeight, minListRowHeight) // top = 8, row = 32, bottom = 8
                     .contentMargins(.all, 0, for: .scrollContent)
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
-                    .onChange(of: items.count) { previousCount, newCount in
+                    .onChange(of: tasks.count) { previousCount, newCount in
                         guard newCount > previousCount,
-                              let newTask = sortedItems.last(where: {
+                              let newTask = sortedTasks.last(where: {
                                   !$0.isCompleted
                               })
                         else { return }
@@ -124,7 +124,7 @@ struct ContentView: View {
                         // Scroll to new task + bottom margin showing the completed task below
                         let peekHeight = minListRowHeight / 2
                         let listHeight = geometry.size.height
-                        let hasCompletedTasks = items.contains {
+                        let hasCompletedTasks = tasks.contains {
                             $0.isCompleted
                         }
                         
@@ -151,7 +151,7 @@ struct ContentView: View {
             }
             
 
-            // New item text field
+            // New task text field
             HStack(spacing: 10) {
                 // Leading plus icon
                 Image(systemName: "plus")
@@ -279,10 +279,10 @@ struct ContentView: View {
         let title = newTaskTitle
             .trimmingCharacters(in: .whitespacesAndNewlines)
         
-        // Prevent empty new item
+        // Prevent empty new task
         guard !title.isEmpty else { return }
         
-        let newTask = TodoItem(title: title)
+        let newTask = Task(title: title)
         
         withAnimation {
             modelContext.insert(newTask)
@@ -309,37 +309,37 @@ struct ContentView: View {
         editTaskTitle = ""
     }
     
-    private func updateTaskTitle(_ item: TodoItem) {
+    private func updateTaskTitle(_ task: Task) {
         let title = editTaskTitle
             .trimmingCharacters(in: .whitespacesAndNewlines)
         
-        // Prevent empty new item
+        // Prevent new task with empty title
         guard !title.isEmpty else { return }
         
         // Save previous title for restoration if saving fails
-        let previousTitle = item.title
+        let previousTitle = task.title
         
         // Edits model in memory
-        item.title = title
+        task.title = title
         
         // Try saving
         if saveChanges() {
             resetEditTextField()
         } else {
             // Restore previous title in memory
-            item.title = previousTitle
+            task.title = previousTitle
             // Refocus edit textfield after alert is dismissed
-            editTaskToRefocus = item.persistentModelID
+            editTaskToRefocus = task.persistentModelID
         }
     }
 
-    private func deleteItem(_ item: TodoItem) {
+    private func deleteItem(_ task: Task) {
         withAnimation {
-            modelContext.delete(item)
+            modelContext.delete(task)
         }
-        // Try saving + reset edit text field in case the user deletes the item while editing
+        // Try saving + reset edit text field in case the user deletes the task while editing
         // TODO: handle differently when moving edit text field to .sheet()
-        if saveChanges() && editTaskId == item.persistentModelID {
+        if saveChanges() && editTaskId == task.persistentModelID {
             resetEditTextField()
         }
     }
@@ -361,5 +361,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: TodoItem.self, inMemory: true)
+        .modelContainer(for: Task.self, inMemory: true)
 }

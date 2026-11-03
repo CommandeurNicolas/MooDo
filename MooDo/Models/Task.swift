@@ -3,7 +3,7 @@ import SwiftData
 
 
 @Model
-final class TodoItem {
+final class Task {
     var title: String
     var isCompleted: Bool = false
     var creationDate: Date = Date()
