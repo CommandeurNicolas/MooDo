@@ -8,7 +8,7 @@ struct TaskRowView: View {
     @Binding var editTaskTitle: String
     @Binding var hoveredTaskId: PersistentIdentifier?
     
-    var focusedField: FocusState<Field?>.Binding
+    var focusedField: FocusState<TaskFocusField?>.Binding
     
     let onSave: () -> Void
     let onCancel: () -> Void

@@ -1,6 +1,6 @@
 import SwiftData
 
-enum Field: Hashable {
+enum TaskFocusField: Hashable {
     case newTask
     case editTask(PersistentIdentifier)
 }

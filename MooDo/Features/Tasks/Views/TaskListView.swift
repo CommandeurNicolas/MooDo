@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftData
 
-struct ContentView: View {
+struct TaskListView: View {
     @Environment(\.modelContext) private var modelContext
     
     // Items list
@@ -17,7 +17,7 @@ struct ContentView: View {
     }
     
     // TextField focus
-    @FocusState private var focusedField: Field?
+    @FocusState private var focusedField: TaskFocusField?
     
     // New task
     private let minListRowHeight: CGFloat = 48
@@ -360,6 +360,6 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    TaskListView()
         .modelContainer(for: Task.self, inMemory: true)
 }
