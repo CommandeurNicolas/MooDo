@@ -95,139 +95,19 @@ struct ContentView: View {
             GeometryReader { geometry in
                 ScrollViewReader { proxy in
                     List {
-                        ForEach(sortedItems) { item in
-                            @Bindable var item = item
-                            
-                            let isEditing = editTaskId == item.persistentModelID
-                            let showEditButton = isEditing || hoveredTaskId == item.persistentModelID
-                            let canSave = !editTaskTitle
-                                .trimmingCharacters(in: .whitespacesAndNewlines)
-                                .isEmpty
-                            
-                            HStack {
-                                if editTaskId == item.persistentModelID {
-                                    // Text field
-                                    TextField(
-                                        "edit_task_placeholder",
-                                        text: $editTaskTitle,
-                                        prompt: Text("What needs doing?")
-                                            .font(.system(size: 14))
-                                            .foregroundStyle(.pastureMuted)
-                                    )
-                                    .textFieldStyle(.plain)
-                                    .foregroundStyle(.pastureText)
-                                    .focused(
-                                        $focusedField,
-                                        equals: .editTask(item.persistentModelID)
-                                    )
-                                    // Edit task
-                                    .onSubmit {
-                                        // TODO: onEdit function?
-                                        updateTaskTitle(item)
-                                    }
-                                    .onExitCommand {
-                                        resetEditTextField()
-                                    }
-                                } else {
-                                    // Complete task
-                                    Toggle(isOn: $item.isCompleted) {
-                                        Text(item.title)
-                                            .font(.system(size: 14))
-                                            .foregroundStyle(
-                                                item.isCompleted ? .pastureMuted: .pastureText
-                                            )
-                                            .strikethrough(
-                                                item.isCompleted,
-                                                color: .pastureStrikethrough
-                                            )
-                                    }
-                                    .toggleStyle(PastureCheckboxStyle())
-                                    .onChange(of: item.isCompleted) {
-                                        saveChanges()
-                                    }
-                                }
-                                
-                                // Some space
-                                Spacer()
-                                
-                                // Edit / Save
-                                Button {
-                                    if isEditing {
-                                        updateTaskTitle(item)
-                                    } else {
-                                        editTaskTitle = item.title
-                                        editTaskId = item.persistentModelID
-                                        focusedField = .editTask(item.persistentModelID)
-                                    }
-                                } label: {
-                                    Label(
-                                        isEditing ? "Save changes" : "Edit \(item.title)",
-                                        systemImage: isEditing ? "checkmark" : "pencil"
-                                    )
-                                    .labelStyle(.iconOnly)
-                                    .font(.system(size: 12, weight: .medium))
-                                    .frame(width: 28, height: 28)
-                                    .background(
-                                        .pastureBackground,
-                                        in: RoundedRectangle(cornerRadius: 5)
-                                    )
-                                    .overlay {
-                                        RoundedRectangle(cornerRadius: 5)
-                                            .strokeBorder(.pastureBorder, lineWidth: 1)
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundStyle(.pastureMuted)
-                                .opacity(showEditButton ? 1.0 : 0.0)
-                                .allowsHitTesting(showEditButton)
-                                .disabled(isEditing ? !canSave : editTaskId != nil)
-                                .help(isEditing ? "Save changes" : "Edit task")
-                                
-                                // Delete / Cancel
-                                Button {
-                                    if isEditing {
-                                        resetEditTextField()
-                                    } else {
-                                        deleteItem(item)
-                                    }
-                                } label: {
-                                    Label(
-                                        isEditing ? "Cancel editing" : "Delete \(item.title)",
-                                        systemImage: isEditing ? "xmark" : "trash"
-                                    )
-                                    .labelStyle(.iconOnly)
-                                    .font(.system(size: 15, weight: .regular))
-                                    .frame(width: 28, height: 28)
-                                    .if(isEditing) {
-                                        $0.background(
-                                            .pastureBackground,
-                                            in: RoundedRectangle(cornerRadius: 5)
-                                        )
-                                        .overlay {
-                                            RoundedRectangle(cornerRadius: 5)
-                                                .strokeBorder(.pastureBorder, lineWidth: 1)
-                                        }
-                                    }
-                                    
-                                }
-                                .labelStyle(.iconOnly)
-                                .buttonStyle(.borderless)
-                                .foregroundStyle(.pastureMuted)
-                                .help(isEditing ? "Cancel editing" : "Delete task")
-                            }
-                            .id(item.persistentModelID)
-                            .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                            .listRowSeparator(.visible, edges: .bottom)
-                            .listRowSeparatorTint(.pastureBorder, edges: .bottom)
-                            .frame(maxWidth: .infinity)
-                            .contentShape(Rectangle())
-                            .onHover { isHovering in
-                                if isHovering {
-                                    hoveredTaskId = item.persistentModelID
-                                } else if hoveredTaskId == item.persistentModelID {
-                                    hoveredTaskId = nil
-                                }
-                            }
+                        ForEach(sortedItems) { task in
+                            TaskRowView(
+                                task: task,
+                                editTaskId: $editTaskId,
+                                editTaskTitle: $editTaskTitle,
+                                hoveredTaskId: $hoveredTaskId,
+                                focusedField: $focusedField,
+                                onSave: { updateTaskTitle(task) },
+                                onCancel: { resetEditTextField() },
+                                onDelete: { deleteItem(task) },
+                                onCompletionChange: { saveChanges() }
+                            )
+                            .id(task.persistentModelID)
                         }
                     }
                     .environment(\.defaultMinListRowHeight, minListRowHeight) // top = 8, item = 32, bottom = 8
