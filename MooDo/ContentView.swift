@@ -16,21 +16,35 @@ struct ContentView: View {
         }
     }
     
+    // TextField focus
+    @FocusState private var focusedField: Field?
+    
     // New task
     private let minListRowHeight: CGFloat = 48
     @State private var newTaskTitle: String = ""
-    @FocusState private var isNewTaskFocused: Bool
+
     private var focusNewTaskAction: (() -> Void)? {
-        guard !isNewTaskFocused, !isShowingSaveError else { return nil }
+        guard focusedField == nil,
+              editTaskId == nil,
+              !isShowingSaveError
+        else { return nil }
         
         return {
-            isNewTaskFocused = true
+            focusedField = .newTask
         }
     }
     
     // Save error handling
     @State private var isShowingSaveError: Bool = false
     @State private var saveErrorMessage: String = ""
+    
+    // Hover task
+    @State private var hoveredTaskId: PersistentIdentifier?
+    
+    // Edit task
+    @State private var editTaskId: PersistentIdentifier?
+    @State private var editTaskTitle: String = ""
+    @State private var editTaskToRefocus: PersistentIdentifier?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -84,44 +98,136 @@ struct ContentView: View {
                         ForEach(sortedItems) { item in
                             @Bindable var item = item
                             
+                            let isEditing = editTaskId == item.persistentModelID
+                            let showEditButton = isEditing || hoveredTaskId == item.persistentModelID
+                            let canSave = !editTaskTitle
+                                .trimmingCharacters(in: .whitespacesAndNewlines)
+                                .isEmpty
+                            
                             HStack {
-                                // Complete item
-                                Toggle(isOn: $item.isCompleted) {
-                                    Text(item.title)
-                                        .font(.system(size: 14))
-                                        .foregroundStyle(
-                                            item.isCompleted ? .pastureMuted: .pastureText
-                                        )
-                                        .strikethrough(
-                                            item.isCompleted,
-                                            color: .pastureStrikethrough
-                                        )
-                                }
-                                .toggleStyle(PastureCheckboxStyle())
-                                .onChange(of: item.isCompleted) {
-                                    saveChanges()
+                                if editTaskId == item.persistentModelID {
+                                    // Text field
+                                    TextField(
+                                        "edit_task_placeholder",
+                                        text: $editTaskTitle,
+                                        prompt: Text("What needs doing?")
+                                            .font(.system(size: 14))
+                                            .foregroundStyle(.pastureMuted)
+                                    )
+                                    .textFieldStyle(.plain)
+                                    .foregroundStyle(.pastureText)
+                                    .focused(
+                                        $focusedField,
+                                        equals: .editTask(item.persistentModelID)
+                                    )
+                                    // Edit task
+                                    .onSubmit {
+                                        // TODO: onEdit function?
+                                        updateTaskTitle(item)
+                                    }
+                                    .onExitCommand {
+                                        resetEditTextField()
+                                    }
+                                } else {
+                                    // Complete task
+                                    Toggle(isOn: $item.isCompleted) {
+                                        Text(item.title)
+                                            .font(.system(size: 14))
+                                            .foregroundStyle(
+                                                item.isCompleted ? .pastureMuted: .pastureText
+                                            )
+                                            .strikethrough(
+                                                item.isCompleted,
+                                                color: .pastureStrikethrough
+                                            )
+                                    }
+                                    .toggleStyle(PastureCheckboxStyle())
+                                    .onChange(of: item.isCompleted) {
+                                        saveChanges()
+                                    }
                                 }
                                 
                                 // Some space
                                 Spacer()
                                 
-                                // Delete item
+                                // Edit / Save
                                 Button {
-                                    deleteItem(item)
+                                    if isEditing {
+                                        updateTaskTitle(item)
+                                    } else {
+                                        editTaskTitle = item.title
+                                        editTaskId = item.persistentModelID
+                                        focusedField = .editTask(item.persistentModelID)
+                                    }
                                 } label: {
-                                    Label("Delete \(item.title)", systemImage: "xmark")
-                                        .font(.system(size: 15, weight: .regular))
-                                        .labelStyle(.iconOnly)
-                                        .frame(width: 30, height: 30)
+                                    Label(
+                                        isEditing ? "Save changes" : "Edit \(item.title)",
+                                        systemImage: isEditing ? "checkmark" : "pencil"
+                                    )
+                                    .labelStyle(.iconOnly)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .frame(width: 28, height: 28)
+                                    .background(
+                                        .pastureBackground,
+                                        in: RoundedRectangle(cornerRadius: 5)
+                                    )
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 5)
+                                            .strokeBorder(.pastureBorder, lineWidth: 1)
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(.pastureMuted)
+                                .opacity(showEditButton ? 1.0 : 0.0)
+                                .allowsHitTesting(showEditButton)
+                                .disabled(isEditing ? !canSave : editTaskId != nil)
+                                .help(isEditing ? "Save changes" : "Edit task")
+                                
+                                // Delete / Cancel
+                                Button {
+                                    if isEditing {
+                                        resetEditTextField()
+                                    } else {
+                                        deleteItem(item)
+                                    }
+                                } label: {
+                                    Label(
+                                        isEditing ? "Cancel editing" : "Delete \(item.title)",
+                                        systemImage: isEditing ? "xmark" : "trash"
+                                    )
+                                    .labelStyle(.iconOnly)
+                                    .font(.system(size: 15, weight: .regular))
+                                    .frame(width: 28, height: 28)
+                                    .if(isEditing) {
+                                        $0.background(
+                                            .pastureBackground,
+                                            in: RoundedRectangle(cornerRadius: 5)
+                                        )
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: 5)
+                                                .strokeBorder(.pastureBorder, lineWidth: 1)
+                                        }
+                                    }
+                                    
                                 }
                                 .labelStyle(.iconOnly)
                                 .buttonStyle(.borderless)
                                 .foregroundStyle(.pastureMuted)
+                                .help(isEditing ? "Cancel editing" : "Delete task")
                             }
                             .id(item.persistentModelID)
                             .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                             .listRowSeparator(.visible, edges: .bottom)
                             .listRowSeparatorTint(.pastureBorder, edges: .bottom)
+                            .frame(maxWidth: .infinity)
+                            .contentShape(Rectangle())
+                            .onHover { isHovering in
+                                if isHovering {
+                                    hoveredTaskId = item.persistentModelID
+                                } else if hoveredTaskId == item.persistentModelID {
+                                    hoveredTaskId = nil
+                                }
+                            }
                         }
                     }
                     .environment(\.defaultMinListRowHeight, minListRowHeight) // top = 8, item = 32, bottom = 8
@@ -184,13 +290,16 @@ struct ContentView: View {
                 )
                 .textFieldStyle(.plain)
                 .foregroundStyle(.pastureText)
-                .focused($isNewTaskFocused)
+                .focused(
+                    $focusedField,
+                    equals: .newTask
+                )
                 // Submit new task
                 .onSubmit {
                     onSubmit()
                 }
                 .onExitCommand {
-                    isNewTaskFocused = false
+                    focusedField = nil
                 }
                 
                 // Trailing return icon
@@ -229,7 +338,7 @@ struct ContentView: View {
                 RoundedRectangle(cornerRadius: 13)
                     .strokeBorder(.pastureGreen, lineWidth: 2)
                     .padding(-4)
-                    .opacity(isNewTaskFocused ? 1 : 0)
+                    .opacity(focusedField == .newTask ? 1 : 0)
                     .allowsHitTesting(false)
             }
             .padding(.top, 24) // Margin between list and textfield
@@ -271,39 +380,101 @@ struct ContentView: View {
                 Text("Your latest changes haven't been saved.\n\n\(saveErrorMessage)")
             }
         )
+        .onChange(of: isShowingSaveError) { _, isPresented in
+            // Refocus edit textfield after alert is dismissed
+            guard !isPresented else { return }
+            
+            let taskID = editTaskToRefocus
+            editTaskToRefocus = nil
+            
+            guard let taskID,
+                  editTaskId == taskID
+            else { return }
+            
+            focusedField = .editTask(taskID)
+        }
     }
     
     private func onSubmit() {
-        let title = newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = newTaskTitle
+            .trimmingCharacters(in: .whitespacesAndNewlines)
         
         // Prevent empty new item
         guard !title.isEmpty else { return }
         
+        let newTask = TodoItem(title: title)
+        
         withAnimation {
-            let newItem = TodoItem(title: title)
-            modelContext.insert(newItem)
-            newTaskTitle = ""
+            modelContext.insert(newTask)
         }
+        
         // Try saving
-        saveChanges()
+        if saveChanges() {
+            newTaskTitle = ""
+        } else {
+            withAnimation {
+                modelContext.delete(newTask)
+            }
+        }
+    }
+
+    private func resetEditTextField() {
+        if let editTaskId,
+           focusedField == .editTask(editTaskId) {
+            // Clear focus
+            focusedField = nil
+        }
+        
+        editTaskId = nil
+        editTaskTitle = ""
+    }
+    
+    private func updateTaskTitle(_ item: TodoItem) {
+        let title = editTaskTitle
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Prevent empty new item
+        guard !title.isEmpty else { return }
+        
+        // Save previous title for restoration if saving fails
+        let previousTitle = item.title
+        
+        // Edits model in memory
+        item.title = title
+        
+        // Try saving
+        if saveChanges() {
+            resetEditTextField()
+        } else {
+            // Restore previous title in memory
+            item.title = previousTitle
+            // Refocus edit textfield after alert is dismissed
+            editTaskToRefocus = item.persistentModelID
+        }
     }
 
     private func deleteItem(_ item: TodoItem) {
         withAnimation {
             modelContext.delete(item)
         }
-        // Try saving
-        saveChanges()
+        // Try saving + reset edit text field in case the user deletes the item while editing
+        // TODO: handle differently when moving edit text field to .sheet()
+        if saveChanges() && editTaskId == item.persistentModelID {
+            resetEditTextField()
+        }
     }
     
-    private func saveChanges() {
-        guard modelContext.hasChanges else { return }
+    @discardableResult
+    private func saveChanges() -> Bool {
+        guard modelContext.hasChanges else { return true }
         
         do {
             try modelContext.save()
+            return true
         } catch {
             saveErrorMessage = error.localizedDescription
             isShowingSaveError = true
+            return false
         }
     }
 }
