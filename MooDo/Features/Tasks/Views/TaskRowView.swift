@@ -2,6 +2,9 @@ import SwiftUI
 import SwiftData
 
 struct TaskRowView: View {
+    // Grip width plus the gap before the checkbox.
+    static let dragHandleGutterWidth: CGFloat = 14 + 8
+
     @Bindable var task: Task
     
     @Binding var editTaskId: PersistentIdentifier?
@@ -30,7 +33,23 @@ struct TaskRowView: View {
     }
     
     var body: some View {
-        HStack {
+        HStack(spacing: 8) {
+            // Grip icon
+            Image(systemName: "line.3.horizontal")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.pastureMuted)
+                .frame(width: 14, height: 28)
+                .contentShape(Rectangle())
+                .pointerStyle(.grabIdle)
+                .opacity(
+                    hoveredTaskId == task.persistentModelID && !isEditing
+                        ? 1
+                        : 0
+                )
+                .allowsHitTesting(!isEditing)
+                .help("Drag to reorder")
+                .accessibilityHidden(true)
+            
             if editTaskId == task.persistentModelID {
                 // Text field
                 TextField(

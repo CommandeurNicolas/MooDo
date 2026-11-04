@@ -12,7 +12,7 @@ struct TaskListView: View {
                 return !first.isCompleted
             }
             
-            return first.creationDate < second.creationDate
+            return first.sortOrder < second.sortOrder
         }
     }
     
@@ -109,11 +109,14 @@ struct TaskListView: View {
                             )
                             .id(task.persistentModelID)
                         }
+                        .onMove(perform: moveTask)
                     }
                     .environment(\.defaultMinListRowHeight, minListRowHeight) // top = 8, row = 32, bottom = 8
                     .contentMargins(.all, 0, for: .scrollContent)
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
+                    // Place the grip icon in the outer gutter to preserve the checkbox's original alignment.
+                    .padding(.leading, -TaskRowView.dragHandleGutterWidth)
                     .onChange(of: tasks.count) { previousCount, newCount in
                         guard newCount > previousCount,
                               let newTask = sortedTasks.last(where: {
@@ -275,6 +278,10 @@ struct TaskListView: View {
         }
     }
     
+    private func getHighestSortOrder() -> Int {
+        tasks.map(\.sortOrder).max() ?? -1
+    }
+    
     private func onSubmit() {
         let title = newTaskTitle
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -282,7 +289,10 @@ struct TaskListView: View {
         // Prevent empty new task
         guard !title.isEmpty else { return }
         
-        let newTask = Task(title: title)
+        let newTask = Task(
+            title: title,
+            position: getHighestSortOrder() + 1
+        )
         
         withAnimation {
             modelContext.insert(newTask)
@@ -341,6 +351,51 @@ struct TaskListView: View {
         // TODO: handle differently when moving edit text field to .sheet()
         if saveChanges() && editTaskId == task.persistentModelID {
             resetEditTextField()
+        }
+    }
+    
+    private func moveTask(source: IndexSet, destination: Int) {
+        guard editTaskId == nil,
+              let firstIndex = source.first
+        else { return }
+        
+        let original = sortedTasks
+        let isCompleted = original[firstIndex].isCompleted
+        let boundary = original.firstIndex(where: {
+            $0.isCompleted
+        }) ?? original.count
+        
+        let allowedDestination = isCompleted
+            ? boundary...original.count
+            : 0...boundary
+        
+        // Only move tasks within the same completion group
+        guard allowedDestination.contains(destination),
+              source.allSatisfy({
+                  original[$0].isCompleted == isCompleted
+              })
+        else { return }
+        
+        var reordered = original
+        reordered.move(fromOffsets: source, toOffset: destination)
+        
+        let groupBefore = original.filter {
+            $0.isCompleted == isCompleted
+        }
+        let groupAfter = reordered.filter {
+            $0.isCompleted == isCompleted
+        }
+        let previousOrders = groupBefore.map(\.sortOrder)
+        
+        // Reuse this group's positions; leave the other group untouched
+        for (task, position) in zip(groupAfter, previousOrders) {
+            task.sortOrder = position
+        }
+        
+        if !saveChanges() {
+            for (task, position) in zip(groupBefore, previousOrders) {
+                task.sortOrder = position
+            }
         }
     }
     
