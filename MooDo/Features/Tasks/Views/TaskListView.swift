@@ -94,27 +94,24 @@ struct TaskListView: View {
             // Items list
             GeometryReader { geometry in
                 ScrollViewReader { proxy in
-                    List {
-                        ForEach(sortedTasks) { task in
-                            TaskRowView(
-                                task: task,
-                                editTaskId: $editTaskId,
-                                editTaskTitle: $editTaskTitle,
-                                hoveredTaskId: $hoveredTaskId,
-                                focusedField: $focusedField,
-                                onSave: { updateTaskTitle(task) },
-                                onCancel: { resetEditTextField() },
-                                onDelete: { deleteItem(task) },
-                                onCompletionChange: { saveChanges() }
-                            )
-                            .id(task.persistentModelID)
-                        }
-                        .onMove(perform: moveTask)
+                    ReorderableTaskList(
+                        tasks: sortedTasks,
+                        isEnabled: editTaskId == nil,
+                        hoveredTaskID: $hoveredTaskId,
+                        onMove: moveTask
+                    ) { task in
+                        TaskRowView(
+                            task: task,
+                            editTaskId: $editTaskId,
+                            editTaskTitle: $editTaskTitle,
+                            hoveredTaskId: $hoveredTaskId,
+                            focusedField: $focusedField,
+                            onSave: { updateTaskTitle(task) },
+                            onCancel: { resetEditTextField() },
+                            onDelete: { deleteItem(task) },
+                            onCompletionChange: { saveChanges() }
+                        )
                     }
-                    .environment(\.defaultMinListRowHeight, minListRowHeight) // top = 8, row = 32, bottom = 8
-                    .contentMargins(.all, 0, for: .scrollContent)
-                    .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
                     // Place the grip icon in the outer gutter to preserve the checkbox's original alignment.
                     .padding(.leading, -TaskRowView.dragHandleGutterWidth)
                     .onChange(of: tasks.count) { previousCount, newCount in

@@ -3,6 +3,14 @@ import SwiftData
 
 @main
 struct MooDoApp: App {
+    private var usesTemporaryStore: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("--uitesting")
+        #else
+        false
+        #endif
+    }
+
     var body: some Scene {
         WindowGroup("MooDo") {
             TaskListView()
@@ -10,7 +18,7 @@ struct MooDoApp: App {
         }
         .defaultSize(width: 500, height: 560)
         .windowIdealSize(.fitToContent)
-        .modelContainer(for: Task.self)
+        .modelContainer(for: Task.self, inMemory: usesTemporaryStore)
         .commands {
             TaskFocusCommand()
         }

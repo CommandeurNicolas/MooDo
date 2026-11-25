@@ -34,22 +34,6 @@ struct TaskRowView: View {
     
     var body: some View {
         HStack(spacing: 8) {
-            // Grip icon
-            Image(systemName: "line.3.horizontal")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.pastureMuted)
-                .frame(width: 14, height: 28)
-                .contentShape(Rectangle())
-                .pointerStyle(.grabIdle)
-                .opacity(
-                    hoveredTaskId == task.persistentModelID && !isEditing
-                        ? 1
-                        : 0
-                )
-                .allowsHitTesting(!isEditing)
-                .help("Drag to reorder")
-                .accessibilityHidden(true)
-            
             if editTaskId == task.persistentModelID {
                 // Text field
                 TextField(
@@ -160,18 +144,7 @@ struct TaskRowView: View {
             .foregroundStyle(.pastureMuted)
             .help(isEditing ? "Cancel editing" : "Delete task")
         }
-        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-        .listRowSeparator(.visible, edges: .bottom)
-        .listRowSeparatorTint(.pastureBorder, edges: .bottom)
         .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
-        .onHover { isHovering in
-            if isHovering {
-                hoveredTaskId = task.persistentModelID
-            } else if hoveredTaskId == task.persistentModelID {
-                hoveredTaskId = nil
-            }
-        }
     }
 }
-

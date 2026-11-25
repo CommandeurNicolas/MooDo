@@ -25,6 +25,44 @@ final class MooDoUITests: XCTestCase {
     }
 
     @MainActor
+    func testReorderingFromGripPreservesCompletionGroups() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--uitesting"]
+        app.launch()
+
+        let input = app.textFields.firstMatch
+        XCTAssertTrue(input.waitForExistence(timeout: 5))
+        for title in ["First task", "Second task", "Third task", "Completed task"] {
+            input.click()
+            input.typeText(title + "\n")
+            XCTAssertTrue(app.checkBoxes[title].waitForExistence(timeout: 3))
+        }
+        app.checkBoxes["Completed task"].click()
+
+        let first = app.checkBoxes["First task"]
+        let second = app.checkBoxes["Second task"]
+        let third = app.checkBoxes["Third task"]
+        let completed = app.checkBoxes["Completed task"]
+        let grip = first.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.5))
+            .withOffset(CGVector(dx: -15, dy: 0))
+        let belowThird = third.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.9))
+        grip.press(forDuration: 0.1, thenDragTo: belowThird, withVelocity: .slow, thenHoldForDuration: 1)
+
+        XCTAssertTrue(second.waitForExistence(timeout: 3))
+        XCTAssertLessThan(second.frame.minY, third.frame.minY)
+        XCTAssertLessThan(third.frame.minY, first.frame.minY)
+
+        let completedGrip = completed.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.5))
+            .withOffset(CGVector(dx: -15, dy: 0))
+        completedGrip.press(forDuration: 0.1, thenDragTo: second.coordinate(withNormalizedOffset: .zero))
+        XCTAssertGreaterThan(completed.frame.minY, first.frame.minY)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Custom reorder result"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
+    @MainActor
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {
