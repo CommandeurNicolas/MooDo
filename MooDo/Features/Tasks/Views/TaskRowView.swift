@@ -34,29 +34,57 @@ struct TaskRowView: View {
     
     var body: some View {
         HStack(spacing: 8) {
-            if editTaskId == task.persistentModelID {
-                // Text field
-                TextField(
-                    "edit_task_placeholder",
-                    text: $editTaskTitle,
-                    prompt: Text("What needs doing?")
-                        .font(.system(size: 14))
-                        .foregroundStyle(.pastureMuted)
-                )
-                .textFieldStyle(.plain)
-                .foregroundStyle(.pastureText)
-                .focused(
-                    focusedField,
-                    equals: .editTask(task.persistentModelID)
-                )
-                // Edit task
-                .onSubmit {
-                    // TODO: onEdit function?
-                    onSave()
+            if isEditing {
+                HStack(spacing: 8) {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 17))
+                        .frame(width: 17, height: 17)
+                        .foregroundStyle(.pastureGreen)
+                        .accessibilityHidden(true)
+
+                    TextField(
+                        "edit_task_placeholder",
+                        text: $editTaskTitle,
+                        prompt: Text("What needs doing?")
+                            .foregroundStyle(.pastureMuted)
+                    )
+                    .font(.system(size: 14))
+                    .textFieldStyle(.plain)
+                    .foregroundStyle(.pastureText)
+                    .focused(
+                        focusedField,
+                        equals: .editTask(task.persistentModelID)
+                    )
+                    .onSubmit {
+                        onSave()
+                    }
+                    .onExitCommand {
+                        onCancel()
+                    }
                 }
-                .onExitCommand {
-                    onCancel()
+                .padding(.horizontal, 10)
+                .frame(minHeight: 36)
+                .background(
+                    .pastureField,
+                    in: RoundedRectangle(cornerRadius: 9)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 9)
+                        .strokeBorder(.pastureBorder, lineWidth: 1)
+                        .allowsHitTesting(false)
                 }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 13)
+                        .strokeBorder(.pastureGreen, lineWidth: 2)
+                        .padding(-4)
+                        .opacity(
+                            focusedField.wrappedValue == .editTask(task.persistentModelID)
+                                ? 1 : 0
+                        )
+                        .allowsHitTesting(false)
+                }
+                // Leave room for the focus ring before the external Save button.
+                .padding(.trailing, 4)
             } else {
                 // Complete task
                 Toggle(isOn: $task.isCompleted) {
@@ -77,7 +105,9 @@ struct TaskRowView: View {
             }
             
             // Some space
-            Spacer()
+            if !isEditing {
+                Spacer()
+            }
             
             // Edit / Save
             Button {
@@ -97,17 +127,21 @@ struct TaskRowView: View {
                 .font(.system(size: 12, weight: .medium))
                 .frame(width: 28, height: 28)
                 .background(
-                    .pastureBackground,
+                    isEditing ? Color.pastureChecked : Color.pastureBackground,
                     in: RoundedRectangle(cornerRadius: 5)
                 )
                 .overlay {
                     RoundedRectangle(cornerRadius: 5)
-                        .strokeBorder(.pastureBorder, lineWidth: 1)
+                        .strokeBorder(
+                            isEditing ? Color.pastureChecked : Color.pastureBorder,
+                            lineWidth: 1
+                        )
                 }
             }
             .buttonStyle(.plain)
-            .foregroundStyle(.pastureMuted)
+            .foregroundStyle(isEditing ? Color.pastureGreen : Color.pastureMuted)
             .opacity(showEditButton ? 1.0 : 0.0)
+            .opacity(isEditing && !canSave ? 0.4 : 1)
             .allowsHitTesting(showEditButton)
             .disabled(isEditing ? !canSave : editTaskId != nil)
             .help(isEditing ? "Save changes" : "Edit task")
@@ -125,7 +159,7 @@ struct TaskRowView: View {
                     systemImage: isEditing ? "xmark" : "trash"
                 )
                 .labelStyle(.iconOnly)
-                .font(.system(size: 15, weight: .regular))
+                .font(.system(size: isEditing ? 12 : 15, weight: .regular))
                 .frame(width: 28, height: 28)
                 .if(isEditing) {
                     $0.background(
@@ -144,7 +178,7 @@ struct TaskRowView: View {
             .foregroundStyle(.pastureMuted)
             .help(isEditing ? "Cancel editing" : "Delete task")
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, minHeight: isEditing ? 48 : nil)
         .contentShape(Rectangle())
     }
 }
